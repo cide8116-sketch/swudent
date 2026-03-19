@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swudents - Calendar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Swudents - Student Tracker</h1>
+</header>
+
+<nav>
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="calendar.html">Calendar</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+</nav>
+
+<main>
+    <section>
+        <h2>Academic Calendar</h2>
+        <p>Track important dates and school events.</p>
+        
+        <div id="calendarContainer">
+            <div id="calendarHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button onclick="previousMonth()" style="padding: 10px 15px;">← Previous</button>
+                <h3 id="monthYear" style="flex: 1; text-align: center; margin: 0;"></h3>
+                <button onclick="nextMonth()" style="padding: 10px 15px;">Next →</button>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Sunday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Monday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Tuesday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Wednesday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Thursday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Friday</th>
+                        <th style="padding: 10px; background-color: #e76f51; color: white;">Saturday</th>
+                    </tr>
+                </thead>
+                <tbody id="calendarDays">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Add Event</h2>
+        <p>Add important school events and deadlines.</p>
+        
+        <form id="eventForm" onsubmit="addEvent(event)">
+            <label>Event Date:</label>
+            <input type="date" id="eventDate" required>
+            
+            <label>Event Title:</label>
+            <input type="text" id="eventTitle" placeholder="E.g., Exam, Assignment Due, etc." required>
+            
+            <label>Event Description:</label>
+            <textarea id="eventDescription" placeholder="Enter event details (optional)" style="height: 80px; resize: vertical;"></textarea>
+            
+            <label>Event Category:</label>
+            <select id="eventCategory" required>
+                <option value="">Select Category</option>
+                <option value="Exam">Exam</option>
+                <option value="Assignment">Assignment</option>
+                <option value="Holiday">Holiday</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Other">Other</option>
+            </select>
+            
+            <button type="submit">Add Event</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Upcoming Events</h2>
+        <div id="upcomingEvents">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+</main>
+
+<footer>
+    &copy; Group 8, 2026 Swudents. All rights reserved.
+</footer>
+
+<style>
+#upcomingEvents {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.event-item {
+    background-color: #f5f0e6;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #e76f51;
+    border-radius: 5px;
+}
+
+.event-item-date {
+    font-weight: bold;
+    color: #d62828;
+    margin-bottom: 5px;
+}
+
+.event-item-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.event-item-category {
+    display: inline-block;
+    background-color: #e76f51;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.event-item-description {
+    color: #666;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.event-item-delete {
+    background-color: #d62828 !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    margin-top: 10px;
+}
+
+.calendar-date {
+    padding: 10px;
+    border: 1px solid #ddd;
+    height: 80px;
+    vertical-align: top;
+    background-color: #fff;
+}
+
+.calendar-date.other-month {
+    background-color: #f9f9f9;
+    color: #ccc;
+}
+
+.calendar-date.today {
+    background-color: #fff3cd;
+    font-weight: bold;
+}
+
+.calendar-date.has-event {
+    background-color: #e8f5e9;
+}
+
+.calendar-date-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.calendar-date-event {
+    font-size: 11px;
+    background-color: #e76f51;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 2px;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+
+<script>
+let events = [];
+let currentDate = new Date();
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadEvents();
+    renderCalendar();
+    renderUpcomingEvents();
+});
+
+// Load events from localStorage
+function loadEvents() {
+    const data = localStorage.getItem('calendarEvents');
+    events = data ? JSON.parse(data) : [];
+}
+
+// Save events to localStorage
+function saveEvents() {
+    localStorage.setItem('calendarEvents', JSON.stringify(events));
+}
+
+// Render calendar
+function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // Update header
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('monthYear').textContent = `${monthNames[month]} ${year}`;
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    // Clear calendar
+    const calendarDays = document.getElementById('calendarDays');
+    calendarDays.innerHTML = '';
+    
+    // Create weeks
+    let date = 1;
+    for (let i = 0; i < 6; i++) {
+        const row = document.createElement('tr');
+        
+        for (let j = 0; j < 7; j++) {
+            const cell = document.createElement('td');
+            cell.className = 'calendar-date';
+            
+            if (i === 0 && j < firstDay) {
+                // Previous month days
+                cell.textContent = daysInPrevMonth - firstDay + j + 1;
+                cell.className += ' other-month';
+            } else if (date > daysInMonth) {
+                // Next month days
+                cell.textContent = date - daysInMonth;
+                cell.className += ' other-month';
+                date++;
+            } else {
+                // Current month days
+                const dayDiv = document.createElement('div');
+                const dateNum = document.createElement('div');
+                dateNum.className = 'calendar-date-number';
+                dateNum.textContent = date;
+                dayDiv.appendChild(dateNum);
+                
+                // Check if today
+                const today = new Date();
+                if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    cell.className += ' today';
+                }
+                
+                // Add events for this date
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                const dayEvents = events.filter(e => e.date === dateStr);
+                
+                if (dayEvents.length > 0) {
+                    cell.className += ' has-event';
+                    dayEvents.forEach(evt => {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = 'calendar-date-event';
+                        eventDiv.textContent = evt.title;
+                        dayDiv.appendChild(eventDiv);
+                    });
+                }
+                
+                cell.appendChild(dayDiv);
+                date++;
+            }
+            
+            row.appendChild(cell);
+        }
+        
+        calendarDays.appendChild(row);
+        if (date > daysInMonth) break;
+    }
+}
+
+// Previous month
+function previousMonth() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+}
+
+// Next month
+function nextMonth() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+}
+
+// Add event
+function addEvent(e) {
+    e.preventDefault();
+    
+    const date = document.getElementById('eventDate').value;
+    const title = document.getElementById('eventTitle').value;
+    const description = document.getElementById('eventDescription').value;
+    const category = document.getElementById('eventCategory').value;
+    
+    events.push({
+        date: date,
+        title: title,
+        description: description,
+        category: category,
+        id: Date.now()
+    });
+    
+    saveEvents();
+    renderCalendar();
+    renderUpcomingEvents();
+    document.getElementById('eventForm').reset();
+    alert('Event added successfully!');
+}
+
+// Render upcoming events
+function renderUpcomingEvents() {
+    const container = document.getElementById('upcomingEvents');
+    
+    // Sort events by date
+    const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    if (sortedEvents.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">No upcoming events. Add one to get started!</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    sortedEvents.forEach(evt => {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'event-item';
+        
+        const dateObj = new Date(evt.date);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        eventDiv.innerHTML = `
+            <div class="event-item-date">${formattedDate}</div>
+            <div class="event-item-title">${evt.title}</div>
+            <span class="event-item-category">${evt.category}</span>
+            ${evt.description ? `<div class="event-item-description">${evt.description}</div>` : ''}
+            <button class="event-item-delete" onclick="deleteEvent(${evt.id})">Delete</button>
+        `;
+        
+        container.appendChild(eventDiv);
+    });
+}
+
+// Delete event
+function deleteEvent(id) {
+    if (confirm('Are you sure you want to delete this event?')) {
+        events = events.filter(e => e.id !== id);
+        saveEvents();
+        renderCalendar();
+        renderUpcomingEvents();
+    }
+}
+</script>
+
+</body>
+</html>
